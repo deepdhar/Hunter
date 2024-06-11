@@ -3,6 +3,7 @@ from openpyxl.workbook import Workbook
 from openpyxl import load_workbook
 import random
 from bs4 import BeautifulSoup
+from fpdf import FPDF
 
 root = Tk()
 root.title("Hunter")
@@ -21,6 +22,7 @@ body = [
 ]
 bodyIndex=1
 subIndex=1
+nameIndex=1
 senderEmail=''
 
 def getSubject():
@@ -35,11 +37,25 @@ def getSubject():
     new_subject = worksheet["A"+str(subIndex)].value
     subjectInput.insert(0,new_subject)
     subIndex = subIndex+1
+    
+def getSenderName():
+    path = "names.xlsx"
+    workbook = load_workbook(path)
+    worksheet = workbook.active
+    length = len(list(worksheet.values))
+    global nameIndex
+    if(nameIndex==length+1):
+        nameIndex=1
+    senderNameInput.delete(0,END)
+    new_name = worksheet["A"+str(nameIndex)].value
+    senderNameInput.insert(0,new_name)
+    nameIndex = nameIndex+1
 
 def loadSenders():
     path = "senders.xlsx"
     workbook = load_workbook(path)
     worksheet = workbook.active
+    senderEmailInput.delete(0,END)
     
     length = len(list(worksheet.values))
     for i in range(1, length+1):
@@ -94,8 +110,19 @@ def startSendingEmail():
             
         html = htmlInput.get('1.0',END);
         soup = BeautifulSoup(html)
+        saveToPDF(soup.get_text())
         print(soup.get_text())
             
+def saveToPDF(htmlText):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=11)
+    pdf.cell(200, 10, txt=htmlText, ln=1, align='C')
+        
+    
+    randint = str(random.randint(234567214, 9933553743))
+    filename = randint  + ".pdf"
+    pdf.output("PDF/" + filename)
 
 
 # first column section
@@ -120,10 +147,10 @@ senderEmailCountInput.grid(row=1, column=4, ipady=4)
 senderNameInput = Entry(root, width=48, borderwidth=5, font=('Arial 10'), background="#90f5e6")
 senderNameInput.grid(row=1, column=5, columnspan=2, padx=15, pady=10, ipady=4)
 
-autoSenderNameButton = Button(root, text='Auto Load Name', background='#ff4255', anchor='w')
-autoSenderNameButton.grid(row=0, column=5)
+# autoSenderNameButton = Button(root, text='Auto Load Name', background='#ff4255', anchor='w')
+# autoSenderNameButton.grid(row=0, column=5)
 
-getSenderNameButton = Button(root, text='Get Sender Name', background='#b1e6fc', anchor='e')
+getSenderNameButton = Button(root, text='Get Sender Name', background='#b1e6fc', anchor='e', command=getSenderName)
 getSenderNameButton.grid(row=0, column=6, padx=(0,15))
 
 
