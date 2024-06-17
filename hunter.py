@@ -2,20 +2,114 @@ from tkinter import *
 from tkinter import messagebox
 from openpyxl.workbook import Workbook
 from openpyxl import load_workbook
-import random
+import random, string
 from bs4 import BeautifulSoup
 from fpdf import FPDF
 from appwrite.client import Client
-from appwrite.services.users import Users
+from appwrite.services.databases import Databases
+from appwrite.id import ID
 
 # appwrite authentication work (not completed)
 client = Client()
 (client
-    .set_project('PROJECT_ID')
-    .set_endpoint('API_END_POINT')
+    .set_project('PROJEC_ID')
+    .set_endpoint('API_ENDPOINT')
     .set_key('API_KEY')
     .set_self_signed()
 )
+
+databases = Databases(client)
+
+todoDatabase = None
+todoCollection = None
+
+def prepare_database():
+  global todoDatabase
+  global todoCollection
+
+  todoDatabase = databases.create(
+    database_id=ID.unique(),
+    name='Hunter'
+  )
+
+  todoCollection = databases.create_collection(
+    database_id=todoDatabase['$id'],
+    collection_id=ID.unique(),
+    name='Hunter Collection'
+  )
+
+  databases.create_string_attribute(
+    database_id=todoDatabase['$id'],
+    collection_id=todoCollection['$id'],
+    key='title',
+    size=255,
+    required=True
+  )
+
+  databases.create_string_attribute(
+    database_id=todoDatabase['$id'],
+    collection_id=todoCollection['$id'],
+    key='description',
+    size=255,
+    required=False,
+    default='This is a test description.'
+  )
+
+  databases.create_boolean_attribute(
+    database_id=todoDatabase['$id'],
+    collection_id=todoCollection['$id'],
+    key='isComplete',
+    required=True
+  )
+
+def seed_database():
+  testTodo1 = {
+    'title': "Buy apples",
+    'description': "At least 2KGs",
+    'isComplete': True
+  }
+
+  testTodo2 = {
+    'title': "Wash the apples", 
+    'isComplete': True
+  }
+
+  testTodo3 = {
+    'title': "Cut the apples",
+    'description': "Don\'t forget to pack them in a box",
+    'isComplete': False
+  }
+
+  databases.create_document(
+    database_id=todoDatabase['$id'],
+    collection_id=todoCollection['$id'],
+    document_id=ID.unique(),
+    data=testTodo1
+  )
+
+  databases.create_document(
+    database_id=todoDatabase['$id'],
+    collection_id=todoCollection['$id'],
+    document_id=ID.unique(),
+    data=testTodo2
+  )
+
+  databases.create_document(
+    database_id=todoDatabase['$id'],
+    collection_id=todoCollection['$id'],
+    document_id=ID.unique(),
+    data=testTodo3
+  )
+
+def get_todos():
+  todos = databases.list_documents(
+    database_id=todoDatabase['$id'],
+    collection_id=todoCollection['$id']
+  )
+  for todo in todos['documents']:
+    print(f"Title: {todo['title']}\nDescription: {todo['description']}\nIs Todo Complete: {todo['isComplete']}\n\n")
+
+
 # appwrite till here
 
 
@@ -27,7 +121,12 @@ root.geometry("640x400")
 bodyIndex=1
 subIndex=1
 nameIndex=1
-senderEmail=''
+currentSenderEmail=''
+currentReceiverEmail=''
+currentBody=''
+currentSubject=''
+
+randomNum = 0
 
 def Home():
     global NewRoot
@@ -80,17 +179,17 @@ def Home():
         for i in range(1, length+1):
             # print(worksheet["B"+str(i)].value)
             buttons = [senderEmailButton1, senderEmailButton2, senderEmailButton3, senderEmailButton4, senderEmailButton5, senderEmailButton6, senderEmailButton7, senderEmailButton8, senderEmailButton9, senderEmailButton10, senderEmailButton11, senderEmailButton12, senderEmailButton13, senderEmailButton14, senderEmailButton15]
-            buttons[i-1].configure(text=worksheet["B"+str(i)].value, background='#b1e6fc')
+            buttons[i-1].configure(text=worksheet["A"+str(i)].value, background='#b1e6fc')
 
     def senderButtonPressed(button):
-        global senderEmail
+        global currentSenderEmail
         buttonText = button.cget('text')
         if "Not Updated" in buttonText:
             return
         else:
-            senderEmail = buttonText
+            currentSenderEmail = buttonText
             senderEmailInput.delete(0,END)
-            senderEmailInput.insert(0,senderEmail)
+            senderEmailInput.insert(0,currentSenderEmail)
 
 
     def loadBody():
@@ -110,38 +209,84 @@ def Home():
         
 
     def startSendingEmail():
-        if senderEmailInput.get()=='' or subjectInput.get()=='' or senderNameInput.get()=='' or bodyInput.get('1.0',END)=='' or htmlInput.get('1.0',END)=='':
+        if senderEmailInput.get()=='' or subjectInput.get()=='' or senderNameInput.get()=='' or len(bodyInput.get('1.0', 'end-1c'))==0 or len(htmlInput.get('1.0', 'end-1c'))==0 or len(receiversInput.get('1.0', 'end-1c'))==0:
             print('check empty values')
         else:
-            sub = subjectInput.get()
-            if "$RANDOM$" in sub:
-                randint = str(random.randint(234567214, 9933553743))
-                new_sub = sub.replace("$RANDOM$", randint)
-                subjectInput.delete(0,END)
-                subjectInput.insert(0,new_sub)
+            global currentReceiverEmail
+            global randomNum
+            global currentBody
+            global currentSubject
             
+            currentReceiverEmail = receiversInput.get('1.0','2.0');
+            currentReceiverEmail = currentReceiverEmail.strip()
+            print(currentReceiverEmail)
+            receiversInput.delete('1.0','2.0');
+            
+            
+            sub = subjectInput.get()
             body = bodyInput.get('1.0', END)
-            if "$RANDOM$" in body:
-                randint = str(random.randint(234567214, 9933553743))
-                new_body = body.replace("$RANDOM$", randint)
-                bodyInput.delete('1.0',END)
-                bodyInput.insert('1.0',new_body)
+            if "$RANDOM$" in sub and "$RANDOM$" in body:
+                randomNum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=18))
+                
+                new_sub = sub.replace("$RANDOM$", randomNum)
+                currentSubject = new_sub
+                new_body = body.replace("$RANDOM$", randomNum)
+                currentBody = new_body
+                
+            if "$INVOICE$" in sub and "$INVOICE$" in body:
+                randomNum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=18))
+                
+                new_sub = sub.replace("$INVOICE$", randomNum)
+                currentSubject = new_sub
+                new_body = body.replace("$INVOICE$", randomNum)
+                currentBody = new_body
+            
+            if "$RANDOM$" in sub or "$RANDOM$" in body:
+                new_sub = sub.replace("$RANDOM$", randomNum)
+                currentSubject = new_sub
+                new_body = body.replace("$RANDOM$", randomNum)
+                currentBody = new_body
+                
+            if "$INVOICE$" in sub or "$INVOICE$" in body:
+                new_sub = sub.replace("$INVOICE$", randomNum)
+                currentSubject = new_sub
+                new_body = body.replace("$INVOICE$", randomNum)
+                currentBody = new_body
                 
             html = htmlInput.get('1.0',END);
             soup = BeautifulSoup(html)
             saveToPDF(soup.get_text())
-            print(soup.get_text())
                 
     def saveToPDF(htmlText):
+        global randomNum
+        global currentReceiverEmail
+        if "$RANDOM$" in htmlText or "$INVOICE$" in htmlText:
+            htmlText = htmlText.replace("$RANDOM$", randomNum)
+            htmlText = htmlText.replace("$INVOICE$", randomNum)
+        if "$EMAIL$" in htmlText:
+            htmlText = htmlText.replace("$EMAIL$", currentReceiverEmail)
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=11)
-        pdf.cell(200, 10, txt=htmlText, ln=1, align='C')
+        pdf.set_xy(10,10)
+        pdf.multi_cell(180, 10, txt=htmlText)
             
-        
-        randint = str(random.randint(234567214, 9933553743))
-        filename = randint  + ".pdf"
+        filename = randomNum  + ".pdf"
         pdf.output("PDF/" + filename)
+        
+    def loadReceivers():
+        path = "receivers.xlsx"
+        workbook = load_workbook(path)
+        worksheet = workbook.active
+        length = len(list(worksheet.values))
+        receiversInput.delete('1.0', END)
+        for i in range(1, length+1):
+            # text=worksheet["B"+str(i)].value
+            receiverEmail = worksheet["A"+str(i)].value
+            print(receiverEmail)
+            receiverInputIndex = str(i+1)
+            receiverInputIndex = receiverInputIndex
+            receiversInput.insert('1.0', receiverEmail + "\n")
 
 
     # first column section
@@ -292,18 +437,22 @@ def Home():
     bodyInput = Text(NewRoot, width=45, height=12, background='#90f5e6')
     bodyInput.grid(row=10, column=2, columnspan=3)
 
-    
+    loadReceiversButton = Button(NewRoot, text='Load Receivers', background="#b1e6fc", font=('Arial 10'), anchor='center', command=loadReceivers)
+    loadReceiversButton.grid(row=9, column=5, columnspan=3)
+    receiversInput = Text(NewRoot, width=45, height=12, background='#90f5e6')
+    receiversInput.grid(row=10, column=5, columnspan=3)
     
 
 def login():
     username = "user"
     password = "123"
+    root.after(0,Home)
     
-    if username_entry.get()==username and password_entry.get()==password:
-        root.after(1000, Home) # or whatever your Tk is called
-        # redirect to the NewPage function after 1 seconds 
-    else:
-        messagebox.showerror(title='Error', message="Invalid login.")
+    # if username_entry.get()==username and password_entry.get()==password:
+    #     root.after(1000, Home)
+    #     # redirect to the NewPage function after 1 seconds 
+    # else:
+    #     messagebox.showerror(title='Error', message="Invalid login.")
     
 
     
@@ -331,17 +480,3 @@ login_button.grid(row=3, column=0, columnspan=2, pady=20)
 
 frame.pack()
 root.mainloop()
-
-
-
-# def Is_Valid():
-#     # same as before...
-#     if LogInAttempt:
-#         print (" One of the accounts have successfully logged in ")
-#         IsValidText.config(text=" You have logged in! ", fg="black", highlightthickness=1)
-#         root.after(1000, NewPage) # or whatever your Tk is called
-#         # redirect to the NewPage function after 1 seconds 
-#     else:
-#         print (" One of the accounts inputted the wrong credentials! ")
-#         IsValidText.config(text=" Invalid username or Password! ", fg="black", highlightthickness=1)
-        
