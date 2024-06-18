@@ -1,3 +1,13 @@
+import base64
+import email
+import email.encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import mimetypes
+import os
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
 from tkinter import *
 from tkinter import messagebox
 from openpyxl.workbook import Workbook
@@ -8,6 +18,8 @@ from fpdf import FPDF
 from appwrite.client import Client
 from appwrite.services.databases import Databases
 from appwrite.id import ID
+
+SCOPES = ["https://mail.google.com/"]
 
 # appwrite authentication work (not completed)
 client = Client()
@@ -227,6 +239,46 @@ def Home():
         bodyIndex = bodyIndex+1
         senderEmailCount1.delete(0,END)
         senderEmailCount1.insert(0,'1')
+
+    def getEmailService():
+        flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+        creds = flow.run_local_server(port=0)
+        service = build("gmail", "v1", credentials=creds)
+        return service
+
+    def create_message_with_attachment(sender, to, subject, message_text, file):
+        message = MIMEMultipart()
+        message['to'] = to
+        message['from'] = sender
+        message['subject'] = subject
+        msg = MIMEText(message_text)
+        message.attach(msg)
+        content_type, encoding = mimetypes.guess_type(file)
+        main_type, sub_type = content_type.split('/', 1)
+        fp = open("./PDF/"+file, 'rb')
+        msg = MIMEBase(main_type, sub_type)
+        msg.set_payload(fp.read())
+        fp.close()
+        filename = os.path.basename("./PDF/"+file)
+        msg.add_header('Content-Disposition', 'attachment', filename=filename)
+        email.encoders.encode_base64(msg)
+        message.attach(msg)
+        raw_message = base64.urlsafe_b64encode(message.as_string().encode("utf-8"))
+        return {'raw': raw_message.decode("utf-8")}
+        
+    def send_message(service, user_id, message):
+        try:
+          message = service.users().messages().send(userId=user_id, body=message).execute()
+          print('Message Id: %s' % message['id'])
+          return message
+        except Exception as e:
+          print('An error occurred: %s' % e)
+          return None
+        
+    def sendEmail(to, subject, message_text, service, file):
+        messageContent = create_message_with_attachment("", to, subject, message_text, file)
+        messageId = send_message(service, user_id="me", message=messageContent)
+        return messageId
         
 
     def startSendingEmail():
@@ -235,6 +287,7 @@ def Home():
         else:
             global currentEmailCount
             global currentSenderCountInput
+            service = getEmailService()
             while len(receiversInput.get('1.0', 'end-1c'))!=0 and currentEmailCount<300:
                 currentEmailCount = currentEmailCount + 1
                 # update in top sender count input
@@ -288,6 +341,8 @@ def Home():
                 html = htmlInput.get('1.0',END);
                 soup = BeautifulSoup(html)
                 saveToPDF(soup.get_text())
+                pdfName = saveToPDF(soup.get_text())
+                sendEmail(currentReceiverEmail, currentSubject, currentBody, service, pdfName) 
                 
                 receiversInput.delete('1.0','2.0');
                 
@@ -307,6 +362,7 @@ def Home():
             
         filename = randomNum  + ".pdf"
         pdf.output("PDF/" + filename)
+        return filename
         
     def loadReceivers():
         path = "receivers.xlsx"
