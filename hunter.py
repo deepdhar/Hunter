@@ -18,112 +18,13 @@ from fpdf import FPDF
 from appwrite.client import Client
 from appwrite.services.databases import Databases
 from appwrite.id import ID
+import time
+import threading
+import pyrebase
+import firebase_admin
+from firebase_admin import db, credentials
 
 SCOPES = ["https://mail.google.com/"]
-
-# appwrite authentication work (not completed)
-client = Client()
-(client
-    .set_project('PROJEC_ID')
-    .set_endpoint('API_ENDPOINT')
-    .set_key('API_KEY')
-    .set_self_signed()
-)
-
-databases = Databases(client)
-
-todoDatabase = None
-todoCollection = None
-
-def prepare_database():
-  global todoDatabase
-  global todoCollection
-
-  todoDatabase = databases.create(
-    database_id=ID.unique(),
-    name='Hunter'
-  )
-
-  todoCollection = databases.create_collection(
-    database_id=todoDatabase['$id'],
-    collection_id=ID.unique(),
-    name='Hunter Collection'
-  )
-
-  databases.create_string_attribute(
-    database_id=todoDatabase['$id'],
-    collection_id=todoCollection['$id'],
-    key='title',
-    size=255,
-    required=True
-  )
-
-  databases.create_string_attribute(
-    database_id=todoDatabase['$id'],
-    collection_id=todoCollection['$id'],
-    key='description',
-    size=255,
-    required=False,
-    default='This is a test description.'
-  )
-
-  databases.create_boolean_attribute(
-    database_id=todoDatabase['$id'],
-    collection_id=todoCollection['$id'],
-    key='isComplete',
-    required=True
-  )
-
-def seed_database():
-  testTodo1 = {
-    'title': "Buy apples",
-    'description': "At least 2KGs",
-    'isComplete': True
-  }
-
-  testTodo2 = {
-    'title': "Wash the apples", 
-    'isComplete': True
-  }
-
-  testTodo3 = {
-    'title': "Cut the apples",
-    'description': "Don\'t forget to pack them in a box",
-    'isComplete': False
-  }
-
-  databases.create_document(
-    database_id=todoDatabase['$id'],
-    collection_id=todoCollection['$id'],
-    document_id=ID.unique(),
-    data=testTodo1
-  )
-
-  databases.create_document(
-    database_id=todoDatabase['$id'],
-    collection_id=todoCollection['$id'],
-    document_id=ID.unique(),
-    data=testTodo2
-  )
-
-  databases.create_document(
-    database_id=todoDatabase['$id'],
-    collection_id=todoCollection['$id'],
-    document_id=ID.unique(),
-    data=testTodo3
-  )
-
-def get_todos():
-  todos = databases.list_documents(
-    database_id=todoDatabase['$id'],
-    collection_id=todoCollection['$id']
-  )
-  for todo in todos['documents']:
-    print(f"Title: {todo['title']}\nDescription: {todo['description']}\nIs Todo Complete: {todo['isComplete']}\n\n")
-
-
-# appwrite till here
-
 
 root = Tk()
 root.configure(bg='#660dff')
@@ -137,26 +38,30 @@ currentSenderEmail=''
 currentReceiverEmail=''
 currentBody=''
 currentSubject=''
+mailingTo = currentSenderEmail
+limitCount = 0
 
 randomNum = 0
 currentEmailCount = 0 #used in startSendingEmail function
 currentSenderCountInput = 0 #used in senderButtonPressed function
 
-def Home():
+def Home(username):
     global NewRoot
+    global limitCount
     root.withdraw() # hide (close) the root/Tk window
     NewRoot = Toplevel(root)
     NewRoot.title("Hunter")
     NewRoot.geometry("1200x640")
     # use the NewRoot as the root now
     
+    cred = credentials.Certificate("firebase_credentials.json")
+    firebase_admin.initialize_app(cred, {"databaseURL":"https://hunter-enterprise-default-rtdb.asia-southeast1.firebasedatabase.app/"})
+    user_db_path = '/' + username
+    limitCount = db.reference(user_db_path + '/dailyLimit').get()
+    renewal_date = db.reference(user_db_path + '/renewalDate').get()
 
-    limitCount = 20000
     totalFromSender = 1
-    mailingTo = "test@gmail.com"
-    renewal_date = "2024-07-02"
-
-
+    
     def getSubject():
         path = "subjects.xlsx"
         workbook = load_workbook(path)
@@ -240,8 +145,8 @@ def Home():
         senderEmailCount1.delete(0,END)
         senderEmailCount1.insert(0,'1')
 
-    def getEmailService():
-        flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+    def getEmailService(credentials):
+        flow = InstalledAppFlow.from_client_secrets_file(credentials+".json", SCOPES)
         creds = flow.run_local_server(port=0)
         service = build("gmail", "v1", credentials=creds)
         return service
@@ -287,8 +192,38 @@ def Home():
         else:
             global currentEmailCount
             global currentSenderCountInput
-            service = getEmailService()
+            service = getEmailService("client_secret_"+senderEmailInput.get())
             while len(receiversInput.get('1.0', 'end-1c'))!=0 and currentEmailCount<300:
+                global currentReceiverEmail
+                global randomNum
+                global currentBody
+                global currentSubject
+                global limitCount
+                
+                currentReceiverEmail = receiversInput.get('1.0','2.0');
+                currentReceiverEmail = currentReceiverEmail.strip()
+                print(currentReceiverEmail)
+                                    
+                
+                currentSubject = subjectInput.get()
+                currentBody = bodyInput.get('1.0', END)
+                
+                randomNum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
+                
+                currentSubject = currentSubject.replace("$RANDOM$", str(randomNum))
+                currentSubject = currentSubject.replace("$INVOICE$", str(randomNum))
+                currentBody = currentBody.replace("$RANDOM$", str(randomNum))
+                currentBody = currentBody.replace("$INVOICE$", str(randomNum))
+
+                html = htmlInput.get('1.0',END);
+                soup = BeautifulSoup(html)
+                saveToPDF(soup.get_text())
+                pdfName = saveToPDF(soup.get_text())
+                
+                sendEmail(currentReceiverEmail, currentSubject, currentBody, service, pdfName)
+                time.sleep(2)
+                
+                
                 currentEmailCount = currentEmailCount + 1
                 # update in top sender count input
                 senderEmailCountInput.delete(0,END)
@@ -298,69 +233,28 @@ def Home():
                 currentSenderCountInput.delete(0,END)
                 currentSenderCountInput.insert(0, currentEmailCount)
                 
-                global currentReceiverEmail
-                global randomNum
-                global currentBody
-                global currentSubject
-                
-                currentReceiverEmail = receiversInput.get('1.0','2.0');
-                currentReceiverEmail = currentReceiverEmail.strip()
-                print(currentReceiverEmail)
-                                    
-                
-                sub = subjectInput.get()
-                body = bodyInput.get('1.0', END)
-                if "$RANDOM$" in sub and "$RANDOM$" in body:
-                    randomNum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=18))
-                    
-                    new_sub = sub.replace("$RANDOM$", randomNum)
-                    currentSubject = new_sub
-                    new_body = body.replace("$RANDOM$", randomNum)
-                    currentBody = new_body
-                    
-                if "$INVOICE$" in sub and "$INVOICE$" in body:
-                    randomNum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=18))
-                    
-                    new_sub = sub.replace("$INVOICE$", randomNum)
-                    currentSubject = new_sub
-                    new_body = body.replace("$INVOICE$", randomNum)
-                    currentBody = new_body
-                
-                if "$RANDOM$" in sub or "$RANDOM$" in body:
-                    new_sub = sub.replace("$RANDOM$", randomNum)
-                    currentSubject = new_sub
-                    new_body = body.replace("$RANDOM$", randomNum)
-                    currentBody = new_body
-                    
-                if "$INVOICE$" in sub or "$INVOICE$" in body:
-                    new_sub = sub.replace("$INVOICE$", randomNum)
-                    currentSubject = new_sub
-                    new_body = body.replace("$INVOICE$", randomNum)
-                    currentBody = new_body
-                    
-                html = htmlInput.get('1.0',END);
-                soup = BeautifulSoup(html)
-                saveToPDF(soup.get_text())
-                pdfName = saveToPDF(soup.get_text())
-                sendEmail(currentReceiverEmail, currentSubject, currentBody, service, pdfName) 
-                
                 receiversInput.delete('1.0','2.0');
+                limitCount = limitCount - 1
+                db.reference(user_db_path + '/dailyLimit').set(limitCount)
+                remainingLimitLabel.config(text = str(limitCount))
+                time.sleep(1)
+                
                 
     def saveToPDF(htmlText):
         global randomNum
         global currentReceiverEmail
-        if "$RANDOM$" in htmlText or "$INVOICE$" in htmlText:
-            htmlText = htmlText.replace("$RANDOM$", randomNum)
-            htmlText = htmlText.replace("$INVOICE$", randomNum)
-        if "$EMAIL$" in htmlText:
-            htmlText = htmlText.replace("$EMAIL$", currentReceiverEmail)
+        
+        htmlText = htmlText.replace("$RANDOM$", str(randomNum))
+        htmlText = htmlText.replace("$INVOICE$", str(randomNum))
+        htmlText = htmlText.replace("$EMAIL$", currentReceiverEmail)
+        
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=11)
         pdf.set_xy(10,10)
         pdf.multi_cell(180, 10, txt=htmlText)
             
-        filename = randomNum  + ".pdf"
+        filename = str(randomNum)  + ".pdf"
         pdf.output("PDF/" + filename)
         return filename
         
@@ -509,10 +403,10 @@ def Home():
     tagsTextBox.insert('1.0', "Tags:- $INVOICE$, $TRANSACTION$, $DATE$, \n $EMAIL$, $ITEMNO$, $RANDOM$")
     tagsTextBox.config(state=DISABLED)
 
-    remainingLimitLabel = Label(NewRoot, text="next renewal date: " + str(renewal_date), font=('Arial, 11'), anchor="w")
-    remainingLimitLabel.grid(row=8, column=5, columnspan=1, pady=20)
+    renewalLimitLabel = Label(NewRoot, text="next renewal date: " + str(renewal_date), font=('Arial, 11'), anchor="w")
+    renewalLimitLabel.grid(row=8, column=5, columnspan=1, pady=20)
 
-    startButton = Button(NewRoot, text="Start", background='#15d629', width=10, font=('Arial, 11'), command=startSendingEmail)
+    startButton = Button(NewRoot, text="Start", background='#15d629', width=10, font=('Arial, 11'), command=threading.Thread(target=startSendingEmail).start)
     startButton.grid(row=8, column=6, pady=20)
 
 
@@ -533,16 +427,31 @@ def Home():
     receiversInput.grid(row=10, column=5, columnspan=3)
     
 
+firebaseConfig = {    
+    'apiKey': "AIzaSyDsP2FA_EM7NqPuLYZZKKUdwvUQcdczfgQ",
+    'authDomain': "hunter-enterprise.firebaseapp.com",
+    'databaseURL': "https://trialauth-7eea1.firebaseio.com",
+    'projectId': "hunter-enterprise",
+    'storageBucket': "hunter-enterprise.appspot.com",
+    'messagingSenderId': "932657854963",
+    'appId': "1:932657854963:web:dbd30a1495facd5200ba86",
+    'measurementId': "G-7NFEEXWW65"
+}
+
+firebase = pyrebase.initialize_app(firebaseConfig)
+auth = firebase.auth()
+
 def login():
-    username = "user"
-    password = "123"
-    # root.after(0,Home)
+    email = username_entry.get()
+    password = password_entry.get()
     
-    if username_entry.get()==username and password_entry.get()==password:
-        root.after(1000, Home)
-        # redirect to the NewPage function after 1 seconds 
-    else:
+    try:
+        auth.sign_in_with_email_and_password(email, password)
+        username = email.replace("@gmail.com", "")
+        root.after(1000, Home(username))
+    except:
         messagebox.showerror(title='Error', message="Invalid login.")
+    return
     
 
     
