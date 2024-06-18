@@ -127,6 +127,8 @@ currentBody=''
 currentSubject=''
 
 randomNum = 0
+currentEmailCount = 0 #used in startSendingEmail function
+currentSenderCountInput = 0 #used in senderButtonPressed function
 
 def Home():
     global NewRoot
@@ -183,7 +185,26 @@ def Home():
 
     def senderButtonPressed(button):
         global currentSenderEmail
+        global currentSenderCountInput
+        global currentEmailCount
         buttonText = button.cget('text')
+        buttons = [senderEmailButton1, senderEmailButton2, senderEmailButton3, senderEmailButton4, senderEmailButton5, senderEmailButton6, senderEmailButton7, senderEmailButton8, senderEmailButton9, senderEmailButton10, senderEmailButton11, senderEmailButton12, senderEmailButton13, senderEmailButton14, senderEmailButton15]
+        buttonCountInputs = [senderEmailCount1, senderEmailCount2, senderEmailCount3, senderEmailCount4, senderEmailCount5, senderEmailCount6, senderEmailCount7, senderEmailCount8, senderEmailCount9, senderEmailCount10, senderEmailCount11, senderEmailCount12, senderEmailCount13, senderEmailCount14, senderEmailCount15]
+        
+        senderEmailCountInput.delete(0,END)
+        currentEmailCount = 0
+        
+        for i in range(1, len(buttons)):
+            if button==buttons[i-1]:
+                currentSenderCountInput = buttonCountInputs[i-1]
+                # currentSenderCountInput.get(0,END)
+                # pass current sender email count input value to sender email count input at top
+                temp = currentSenderCountInput.get()
+                # currentEmailCount = int(float(temp))
+                print(temp)
+                senderEmailCountInput.insert(0, temp)
+                break
+        
         if "Not Updated" in buttonText:
             return
         else:
@@ -212,50 +233,63 @@ def Home():
         if senderEmailInput.get()=='' or subjectInput.get()=='' or senderNameInput.get()=='' or len(bodyInput.get('1.0', 'end-1c'))==0 or len(htmlInput.get('1.0', 'end-1c'))==0 or len(receiversInput.get('1.0', 'end-1c'))==0:
             print('check empty values')
         else:
-            global currentReceiverEmail
-            global randomNum
-            global currentBody
-            global currentSubject
-            
-            currentReceiverEmail = receiversInput.get('1.0','2.0');
-            currentReceiverEmail = currentReceiverEmail.strip()
-            print(currentReceiverEmail)
-            receiversInput.delete('1.0','2.0');
-            
-            
-            sub = subjectInput.get()
-            body = bodyInput.get('1.0', END)
-            if "$RANDOM$" in sub and "$RANDOM$" in body:
-                randomNum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=18))
+            global currentEmailCount
+            global currentSenderCountInput
+            while len(receiversInput.get('1.0', 'end-1c'))!=0 and currentEmailCount<300:
+                currentEmailCount = currentEmailCount + 1
+                # update in top sender count input
+                senderEmailCountInput.delete(0,END)
+                senderEmailCountInput.insert(0, currentEmailCount)
                 
-                new_sub = sub.replace("$RANDOM$", randomNum)
-                currentSubject = new_sub
-                new_body = body.replace("$RANDOM$", randomNum)
-                currentBody = new_body
+                # update in list sender count input
+                currentSenderCountInput.delete(0,END)
+                currentSenderCountInput.insert(0, currentEmailCount)
                 
-            if "$INVOICE$" in sub and "$INVOICE$" in body:
-                randomNum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=18))
+                global currentReceiverEmail
+                global randomNum
+                global currentBody
+                global currentSubject
                 
-                new_sub = sub.replace("$INVOICE$", randomNum)
-                currentSubject = new_sub
-                new_body = body.replace("$INVOICE$", randomNum)
-                currentBody = new_body
-            
-            if "$RANDOM$" in sub or "$RANDOM$" in body:
-                new_sub = sub.replace("$RANDOM$", randomNum)
-                currentSubject = new_sub
-                new_body = body.replace("$RANDOM$", randomNum)
-                currentBody = new_body
+                currentReceiverEmail = receiversInput.get('1.0','2.0');
+                currentReceiverEmail = currentReceiverEmail.strip()
+                print(currentReceiverEmail)
+                                    
                 
-            if "$INVOICE$" in sub or "$INVOICE$" in body:
-                new_sub = sub.replace("$INVOICE$", randomNum)
-                currentSubject = new_sub
-                new_body = body.replace("$INVOICE$", randomNum)
-                currentBody = new_body
+                sub = subjectInput.get()
+                body = bodyInput.get('1.0', END)
+                if "$RANDOM$" in sub and "$RANDOM$" in body:
+                    randomNum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=18))
+                    
+                    new_sub = sub.replace("$RANDOM$", randomNum)
+                    currentSubject = new_sub
+                    new_body = body.replace("$RANDOM$", randomNum)
+                    currentBody = new_body
+                    
+                if "$INVOICE$" in sub and "$INVOICE$" in body:
+                    randomNum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=18))
+                    
+                    new_sub = sub.replace("$INVOICE$", randomNum)
+                    currentSubject = new_sub
+                    new_body = body.replace("$INVOICE$", randomNum)
+                    currentBody = new_body
                 
-            html = htmlInput.get('1.0',END);
-            soup = BeautifulSoup(html)
-            saveToPDF(soup.get_text())
+                if "$RANDOM$" in sub or "$RANDOM$" in body:
+                    new_sub = sub.replace("$RANDOM$", randomNum)
+                    currentSubject = new_sub
+                    new_body = body.replace("$RANDOM$", randomNum)
+                    currentBody = new_body
+                    
+                if "$INVOICE$" in sub or "$INVOICE$" in body:
+                    new_sub = sub.replace("$INVOICE$", randomNum)
+                    currentSubject = new_sub
+                    new_body = body.replace("$INVOICE$", randomNum)
+                    currentBody = new_body
+                    
+                html = htmlInput.get('1.0',END);
+                soup = BeautifulSoup(html)
+                saveToPDF(soup.get_text())
+                
+                receiversInput.delete('1.0','2.0');
                 
     def saveToPDF(htmlText):
         global randomNum
@@ -446,13 +480,13 @@ def Home():
 def login():
     username = "user"
     password = "123"
-    root.after(0,Home)
+    # root.after(0,Home)
     
-    # if username_entry.get()==username and password_entry.get()==password:
-    #     root.after(1000, Home)
-    #     # redirect to the NewPage function after 1 seconds 
-    # else:
-    #     messagebox.showerror(title='Error', message="Invalid login.")
+    if username_entry.get()==username and password_entry.get()==password:
+        root.after(1000, Home)
+        # redirect to the NewPage function after 1 seconds 
+    else:
+        messagebox.showerror(title='Error', message="Invalid login.")
     
 
     
