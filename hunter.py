@@ -203,7 +203,7 @@ def Home():
                 # currentEmailCount = int(float(temp))
                 print(temp)
                 senderEmailCountInput.insert(0, temp)
-                break
+                break 
         
         if "Not Updated" in buttonText:
             return
