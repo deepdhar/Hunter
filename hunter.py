@@ -17,6 +17,7 @@ import random, string
 from bs4 import BeautifulSoup
 from fpdf import FPDF
 import pdfkit
+import imgkit
 import time
 import threading
 import pyrebase
@@ -243,7 +244,7 @@ def Home(username):
                 pdfName = saveToPDF(html)
                 
                 sendEmail(senderEmailInput.get(), currentReceiverEmail, currentSubject, currentSenderName, currentBody, service, pdfName)
-                time.sleep(2)
+                time.sleep(0.5)
                 
                 
                 currentEmailCount = currentEmailCount + 1
@@ -278,14 +279,23 @@ def Home(username):
         #     f.write(htmlText)
         #     f.close()
         
-        path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
-        config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
-        filename = str(randomNum)  + ".pdf"
+        path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltoimage.exe'
+        imgkit_config = imgkit.config(wkhtmltoimage=path_wkhtmltopdf)
+        img_filename = str(randomNum)  + ".png"
+        pdf_filename = str(randomNum)  + ".pdf"
 
-        pdfkit.from_string(htmlText, filename, configuration=config)
-        # os.remove(new_file_path)
-        
-        return filename
+        imgkit.from_string(htmlText, img_filename, config=imgkit_config)
+
+        pdf = FPDF()
+        pdf.add_page()
+
+        # Add image
+        pdf.image(img_filename, x=0, y=0, w=pdf.w - 20)
+
+        # Save the PDF
+        pdf.output(pdf_filename)
+        os.remove(img_filename)
+        return pdf_filename
     
     def saveToPDF2(htmlText):
         global randomNum
