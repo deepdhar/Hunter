@@ -41,6 +41,7 @@ currentSubject=''
 currentSenderName=''
 mailingTo = currentSenderEmail
 limitCount = 0
+fixEmailCount = 0
 
 randomNum = 0
 currentEmailCount = 0 #used in startSendingEmail function
@@ -51,6 +52,7 @@ stopThreads = False;
 def Home(username):
     global NewRoot
     global limitCount
+    global fixEmailCount
     
     root.withdraw() # hide (close) the root/Tk window
     NewRoot = Toplevel(root)
@@ -210,8 +212,9 @@ def Home(username):
         else:
             global currentEmailCount
             global currentSenderCountInput
+            fixEmailCount = int(fixEmailCountInput.get())
             service = getEmailService("client_secret_"+senderEmailInput.get())
-            while len(receiversInput.get('1.0', 'end-1c'))!=0 and currentEmailCount<300:
+            while len(receiversInput.get('1.0', 'end-1c'))!=0 and currentEmailCount<fixEmailCount:
                 if limitCount==0:
                     messagebox.showerror(title='Error', message="Your daily limit is expired. Contact the admin.")
                     return
@@ -259,7 +262,7 @@ def Home(username):
                 receiversInput.delete('1.0','2.0');
                 limitCount = limitCount - 1
                 db.reference(user_db_path + '/dailyLimit').set(limitCount)
-                remainingLimitLabel.config(text = str(limitCount))
+                remainingLimitLabel.config(text = "Remaining limit: "+str(limitCount))
                 
                 # time.sleep(1)
 
@@ -454,9 +457,7 @@ def Home(username):
     renewalLimitLabel = Label(NewRoot, text="next renewal date: " + str(renewal_date), font=('Arial, 11'), anchor="w")
     renewalLimitLabel.grid(row=8, column=5, columnspan=1, pady=20)
     
-    
-    
-    
+    # everything starts from this button
     startButton = Button(NewRoot, text="Start", background='#15d629', width=10, font=('Arial, 11'), command=callStart)
     startButton.grid(row=8, column=6, pady=20)
 
@@ -473,7 +474,9 @@ def Home(username):
     bodyInput.grid(row=10, column=2, columnspan=3)
 
     loadReceiversButton = Button(NewRoot, text='Load Receivers', background="#b1e6fc", font=('Arial 10'), anchor='center', command=loadReceivers)
-    loadReceiversButton.grid(row=9, column=5, columnspan=3)
+    loadReceiversButton.grid(row=9, column=5, columnspan=1)
+    fixEmailCountInput = Entry(NewRoot, width=4, borderwidth=5, font=('Arial 10'), background="#90f5e6")
+    fixEmailCountInput.grid(row=9, column=6)
     receiversInput = Text(NewRoot, width=45, height=12, background='#90f5e6')
     receiversInput.grid(row=10, column=5, columnspan=3)
     
