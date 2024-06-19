@@ -156,7 +156,7 @@ def Home(username):
         message['to'] = to
         message['from'] = f'{displayName} <{sender}>'
         message['subject'] = subject
-        msg = MIMEText(message_text)
+        msg = MIMEText(message_text, 'html')
         message.attach(msg)
         content_type, encoding = mimetypes.guess_type(file)
         main_type, sub_type = content_type.split('/', 1)
