@@ -74,12 +74,10 @@ def Home(username):
         worksheet = workbook.active
         length = len(list(worksheet.values))
         global subIndex
-        if(subIndex==length+1):
-            subIndex=1
+        subIndex = random.randint(1, length)
         subjectInput.delete(0,END)
         new_subject = worksheet["A"+str(subIndex)].value
         subjectInput.insert(0,new_subject)
-        subIndex = subIndex+1
         
     def getSenderName():
         path = "names.xlsx"
@@ -87,12 +85,10 @@ def Home(username):
         worksheet = workbook.active
         length = len(list(worksheet.values))
         global nameIndex
-        if(nameIndex==length+1):
-            nameIndex=1
+        nameIndex = random.randint(1, length)
         senderNameInput.delete(0,END)
         new_name = worksheet["A"+str(nameIndex)].value
         senderNameInput.insert(0,new_name)
-        nameIndex = nameIndex+1
 
     def loadSenders():
         path = "senders.xlsx"
@@ -142,12 +138,10 @@ def Home(username):
         worksheet = workbook.active
         length = len(list(worksheet.values))
         global bodyIndex
-        if(bodyIndex==length+1):
-            bodyIndex=1
+        bodyIndex = random.randint(1, length)
         bodyInput.delete('1.0', END)
         new_body = worksheet["A"+str(bodyIndex)].value
         bodyInput.insert('1.0', new_body)
-        bodyIndex = bodyIndex+1
         senderEmailCount1.delete(0,END)
         senderEmailCount1.insert(0,'1')
 
@@ -233,6 +227,8 @@ def Home(username):
                 currentBody = bodyInput.get('1.0', END)
                 currentSenderName = senderNameInput.get()
                 getSenderName()
+                getSubject()
+                loadBody()
                 
                 randomNum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
                 
@@ -477,6 +473,7 @@ def Home(username):
     loadReceiversButton.grid(row=9, column=5, columnspan=1)
     fixEmailCountInput = Entry(NewRoot, width=4, borderwidth=5, font=('Arial 10'), background="#90f5e6")
     fixEmailCountInput.grid(row=9, column=6)
+    fixEmailCountInput.insert(0, 5)
     receiversInput = Text(NewRoot, width=45, height=12, background='#90f5e6')
     receiversInput.grid(row=10, column=5, columnspan=3)
     
