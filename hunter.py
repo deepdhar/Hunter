@@ -38,6 +38,7 @@ currentSenderEmail=''
 currentReceiverEmail=''
 currentBody=''
 currentSubject=''
+currentSenderName=''
 mailingTo = currentSenderEmail
 limitCount = 0
 
@@ -154,10 +155,10 @@ def Home(username):
         service = build("gmail", "v1", credentials=creds)
         return service
 
-    def create_message_with_attachment(sender, to, subject, message_text, file):
+    def create_message_with_attachment(sender, to, subject, displayName, message_text, file):
         message = MIMEMultipart()
         message['to'] = to
-        message['from'] = sender
+        message['from'] = f'{displayName} <{sender}>'
         message['subject'] = subject
         msg = MIMEText(message_text)
         message.attach(msg)
@@ -183,8 +184,8 @@ def Home(username):
           print('An error occurred: %s' % e)
           return None
         
-    def sendEmail(to, subject, message_text, service, file):
-        messageContent = create_message_with_attachment("", to, subject, message_text, file)
+    def sendEmail(sender, to, subject, displayName, message_text, service, file):
+        messageContent = create_message_with_attachment(sender, to, subject, displayName, message_text, file)
         messageId = send_message(service, user_id="me", message=messageContent)
         return messageId
  
@@ -218,6 +219,7 @@ def Home(username):
                 global randomNum
                 global currentBody
                 global currentSubject
+                global currentSenderName
                 
                 currentReceiverEmail = receiversInput.get('1.0','2.0');
                 currentReceiverEmail = currentReceiverEmail.strip()
@@ -226,6 +228,8 @@ def Home(username):
                 
                 currentSubject = subjectInput.get()
                 currentBody = bodyInput.get('1.0', END)
+                currentSenderName = senderNameInput.get()
+                getSenderName()
                 
                 randomNum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
                 
@@ -239,7 +243,7 @@ def Home(username):
                 # saveToPDF(soup.get_text())
                 pdfName = saveToPDF(html)
                 
-                sendEmail(currentReceiverEmail, currentSubject, currentBody, service, pdfName)
+                sendEmail(senderEmailInput.get(), currentReceiverEmail, currentSubject, currentSenderName, currentBody, service, pdfName)
                 time.sleep(2)
                 
                 
