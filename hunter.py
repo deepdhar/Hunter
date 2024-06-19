@@ -45,9 +45,12 @@ randomNum = 0
 currentEmailCount = 0 #used in startSendingEmail function
 currentSenderCountInput = 0 #used in senderButtonPressed function
 
+stopThreads = False;
+
 def Home(username):
     global NewRoot
     global limitCount
+    
     root.withdraw() # hide (close) the root/Tk window
     NewRoot = Toplevel(root)
     NewRoot.title("Hunter")
@@ -184,21 +187,37 @@ def Home(username):
         messageContent = create_message_with_attachment("", to, subject, message_text, file)
         messageId = send_message(service, user_id="me", message=messageContent)
         return messageId
-        
+ 
+    def callStart():
+        global stopThreads
+        if stopThreads==False:
+            t1 = threading.Thread(target=startSendingEmail)
+            print("Thread running: " + str(t1))
+            t1.start()
+        # else:
+        #     t2 = threading.Thread(target=startSendingEmail)
+        #     t1.join(t2)
+        #     print("Prev thread stopped")
+        #     stopThreads = False
 
     def startSendingEmail():
+        global limitCount
         if senderEmailInput.get()=='' or subjectInput.get()=='' or senderNameInput.get()=='' or len(bodyInput.get('1.0', 'end-1c'))==0 or len(htmlInput.get('1.0', 'end-1c'))==0 or len(receiversInput.get('1.0', 'end-1c'))==0:
             print('check empty values')
+        elif limitCount==0:
+            messagebox.showerror(title='Error', message="Your daily limit is expired. Contact the admin.")
         else:
             global currentEmailCount
             global currentSenderCountInput
             service = getEmailService("client_secret_"+senderEmailInput.get())
             while len(receiversInput.get('1.0', 'end-1c'))!=0 and currentEmailCount<300:
+                if limitCount==0:
+                    messagebox.showerror(title='Error', message="Your daily limit is expired. Contact the admin.")
+                    return
                 global currentReceiverEmail
                 global randomNum
                 global currentBody
                 global currentSubject
-                global limitCount
                 
                 currentReceiverEmail = receiversInput.get('1.0','2.0');
                 currentReceiverEmail = currentReceiverEmail.strip()
@@ -237,8 +256,10 @@ def Home(username):
                 limitCount = limitCount - 1
                 db.reference(user_db_path + '/dailyLimit').set(limitCount)
                 remainingLimitLabel.config(text = str(limitCount))
-                time.sleep(1)
                 
+                # time.sleep(1)
+
+        time.sleep(1)
                 
     def saveToPDF(htmlText):
         global randomNum
@@ -405,8 +426,11 @@ def Home(username):
 
     renewalLimitLabel = Label(NewRoot, text="next renewal date: " + str(renewal_date), font=('Arial, 11'), anchor="w")
     renewalLimitLabel.grid(row=8, column=5, columnspan=1, pady=20)
-
-    startButton = Button(NewRoot, text="Start", background='#15d629', width=10, font=('Arial, 11'), command=threading.Thread(target=startSendingEmail).start)
+    
+    
+    
+    
+    startButton = Button(NewRoot, text="Start", background='#15d629', width=10, font=('Arial, 11'), command=callStart)
     startButton.grid(row=8, column=6, pady=20)
 
 
