@@ -1,3 +1,4 @@
+import os
 import base64
 import email
 import email.encoders
@@ -15,14 +16,13 @@ from openpyxl import load_workbook
 import random, string
 from bs4 import BeautifulSoup
 from fpdf import FPDF
-from appwrite.client import Client
-from appwrite.services.databases import Databases
-from appwrite.id import ID
+import pdfkit
 import time
 import threading
 import pyrebase
 import firebase_admin
 from firebase_admin import db, credentials
+
 
 SCOPES = ["https://mail.google.com/"]
 
@@ -163,12 +163,12 @@ def Home(username):
         message.attach(msg)
         content_type, encoding = mimetypes.guess_type(file)
         main_type, sub_type = content_type.split('/', 1)
-        fp = open("./PDF/"+file, 'rb')
+        fp = open(file, 'rb')
         msg = MIMEBase(main_type, sub_type)
         msg.set_payload(fp.read())
         fp.close()
-        filename = os.path.basename("./PDF/"+file)
-        msg.add_header('Content-Disposition', 'attachment', filename=filename)
+        # filename = os.path.basename(file)
+        msg.add_header('Content-Disposition', 'attachment', filename=file)
         email.encoders.encode_base64(msg)
         message.attach(msg)
         raw_message = base64.urlsafe_b64encode(message.as_string().encode("utf-8"))
@@ -235,9 +235,9 @@ def Home(username):
                 currentBody = currentBody.replace("$INVOICE$", str(randomNum))
 
                 html = htmlInput.get('1.0',END);
-                soup = BeautifulSoup(html)
-                saveToPDF(soup.get_text())
-                pdfName = saveToPDF(soup.get_text())
+                # soup = BeautifulSoup(html,"html-parser")
+                # saveToPDF(soup.get_text())
+                pdfName = saveToPDF(html)
                 
                 sendEmail(currentReceiverEmail, currentSubject, currentBody, service, pdfName)
                 time.sleep(2)
@@ -262,6 +262,29 @@ def Home(username):
         time.sleep(1)
                 
     def saveToPDF(htmlText):
+        global randomNum
+        global currentReceiverEmail
+        
+        htmlText = htmlText.replace("$RANDOM$", str(randomNum))
+        htmlText = htmlText.replace("$INVOICE$", str(randomNum))
+        htmlText = htmlText.replace("$EMAIL$", currentReceiverEmail)
+        
+        # new_file_path = "new_html_code.html"
+                
+        # with open(new_file_path, 'w') as f:
+        #     f.write(htmlText)
+        #     f.close()
+        
+        path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+        config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+        filename = str(randomNum)  + ".pdf"
+
+        pdfkit.from_string(htmlText, filename, configuration=config)
+        # os.remove(new_file_path)
+        
+        return filename
+    
+    def saveToPDF2(htmlText):
         global randomNum
         global currentReceiverEmail
         
