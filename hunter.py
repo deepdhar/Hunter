@@ -45,6 +45,9 @@ limitCount = 0
 fixEmailCount = 0
 
 randomNum = 0
+randomInvoice = 0
+randomTransaction = 0
+randomItem = 0
 currentEmailCount = 0 #used in startSendingEmail function
 currentSenderCountInput = 0 #used in senderButtonPressed function
 
@@ -198,6 +201,58 @@ def Home(username):
         #     print("Prev thread stopped")
         #     stopThreads = False
 
+    def getRandomNum():
+        global randomNum
+        
+        temp1 = ''.join(random.choices(string.ascii_uppercase, k=3)) + "-"
+        temp2 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3)) + "-"
+        temp3 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3)) + "-"
+        temp4 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4)) + "-"
+        temp5 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=11))
+        
+        randomNum = temp1+temp2+temp3+temp4+temp5
+        
+        return randomNum
+    
+    def getRandomInvoice():
+        global randomInvoice
+        
+        temp1 = ''.join(random.choices(string.ascii_uppercase, k=3)) + "-"
+        temp2 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3)) + "-"
+        temp3 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3)) + "-"
+        temp4 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4)) + "-"
+        temp5 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=11))
+        
+        randomInvoice = temp1+temp2+temp3+temp4+temp5
+        
+        return randomInvoice
+    
+    def getRandomTransaction():
+        global randomTransaction
+        
+        temp1 = ''.join(random.choices(string.ascii_uppercase, k=3)) + "-"
+        temp2 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3)) + "-"
+        temp3 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3)) + "-"
+        temp4 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4)) + "-"
+        temp5 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=11))
+        
+        randomTransaction = temp1+temp2+temp3+temp4+temp5
+        
+        return randomTransaction
+    
+    def getRandomItem():
+        global randomItem
+        
+        temp1 = ''.join(random.choices(string.ascii_uppercase, k=3)) + "-"
+        temp2 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3)) + "-"
+        temp3 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3)) + "-"
+        temp4 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4)) + "-"
+        temp5 = ''.join(random.choices(string.ascii_uppercase + string.digits, k=11))
+        
+        randomItem = temp1+temp2+temp3+temp4+temp5
+        
+        return randomItem
+
     def startSendingEmail():
         global limitCount
         if senderEmailInput.get()=='' or subjectInput.get()=='' or senderNameInput.get()=='' or len(bodyInput.get('1.0', 'end-1c'))==0 or len(htmlInput.get('1.0', 'end-1c'))==0 or len(receiversInput.get('1.0', 'end-1c'))==0:
@@ -214,7 +269,6 @@ def Home(username):
                     messagebox.showerror(title='Error', message="Your daily limit is expired. Contact the admin.")
                     return
                 global currentReceiverEmail
-                global randomNum
                 global currentBody
                 global currentSubject
                 global currentSenderName
@@ -222,21 +276,25 @@ def Home(username):
                 currentReceiverEmail = receiversInput.get('1.0','2.0');
                 currentReceiverEmail = currentReceiverEmail.strip()
                 print(currentReceiverEmail)
-                                    
+                mailToLabel.config(text="Mailing to: " + str(currentReceiverEmail))
                 
                 currentSubject = subjectInput.get()
                 currentBody = bodyInput.get('1.0', END)
                 currentSenderName = senderNameInput.get()
-                getSenderName()
-                getSubject()
-                loadBody()
+                # getSenderName()
+                # getSubject()
+                # loadBody()
+
                 
-                randomNum = ''.join(random.choices(string.ascii_uppercase + string.digits, k=16))
+                currentSubject = currentSubject.replace("$RANDOM$", str(getRandomNum()))
+                currentSubject = currentSubject.replace("$INVOICE$", str(getRandomInvoice()))
+                currentSubject = currentSubject.replace("$TRANSACTION$", str(getRandomTransaction()))
+                currentSubject = currentSubject.replace("$ITEMNO$", str(getRandomItem()))
                 
-                currentSubject = currentSubject.replace("$RANDOM$", str(randomNum))
-                currentSubject = currentSubject.replace("$INVOICE$", str(randomNum))
-                currentBody = currentBody.replace("$RANDOM$", str(randomNum))
-                currentBody = currentBody.replace("$INVOICE$", str(randomNum))
+                currentBody = currentBody.replace("$RANDOM$", str(getRandomNum()))
+                currentBody = currentBody.replace("$INVOICE$", str(getRandomInvoice()))
+                currentBody = currentBody.replace("$TRANSACTION$", str(getRandomTransaction()))
+                currentBody = currentBody.replace("$ITEMNO$", str(getRandomItem()))
 
                 html = htmlInput.get('1.0',END);
                 # soup = BeautifulSoup(html,"html-parser")
@@ -244,7 +302,7 @@ def Home(username):
                 pdfName = saveToPDF(html)
                 
                 sendEmail(senderEmailInput.get(), currentReceiverEmail, currentSubject, currentSenderName, currentBody, service, pdfName)
-                time.sleep(0.5)
+                # time.sleep(0.5)
                 
                 
                 currentEmailCount = currentEmailCount + 1
@@ -263,58 +321,25 @@ def Home(username):
                 
                 # time.sleep(1)
 
-        time.sleep(1)
+        # time.sleep(1)
                 
     def saveToPDF(htmlText):
-        global randomNum
         global currentReceiverEmail
         
-        htmlText = htmlText.replace("$RANDOM$", str(randomNum))
-        htmlText = htmlText.replace("$INVOICE$", str(randomNum))
+        htmlText = htmlText.replace("$RANDOM$", str(getRandomNum()))
+        htmlText = htmlText.replace("$INVOICE$", str(getRandomInvoice()))
+        htmlText = htmlText.replace("$TRANSACTION$", str(getRandomTransaction()))
+        htmlText = htmlText.replace("$ITEMNO$", str(getRandomItem()))
         htmlText = htmlText.replace("$EMAIL$", currentReceiverEmail)
+
+        path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+        config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+        pdf_filename = str(getRandomNum())  + ".pdf"
+
+        pdfkit.from_string(htmlText, pdf_filename, configuration=config)
         
-        # new_file_path = "new_html_code.html"
-                
-        # with open(new_file_path, 'w') as f:
-        #     f.write(htmlText)
-        #     f.close()
-        
-        path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltoimage.exe'
-        imgkit_config = imgkit.config(wkhtmltoimage=path_wkhtmltopdf)
-        img_filename = str(randomNum)  + ".png"
-        pdf_filename = str(randomNum)  + ".pdf"
-
-        imgkit.from_string(htmlText, img_filename, config=imgkit_config)
-
-        pdf = FPDF()
-        pdf.add_page()
-
-        # Add image
-        pdf.image(img_filename, x=0, y=0, w=pdf.w - 20)
-
-        # Save the PDF
-        pdf.output(pdf_filename)
-        os.remove(img_filename)
         return pdf_filename
-    
-    def saveToPDF2(htmlText):
-        global randomNum
-        global currentReceiverEmail
-        
-        htmlText = htmlText.replace("$RANDOM$", str(randomNum))
-        htmlText = htmlText.replace("$INVOICE$", str(randomNum))
-        htmlText = htmlText.replace("$EMAIL$", currentReceiverEmail)
-        
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=11)
-        pdf.set_xy(10,10)
-        pdf.multi_cell(180, 10, txt=htmlText)
-            
-        filename = str(randomNum)  + ".pdf"
-        pdf.output("PDF/" + filename)
-        return filename
-        
+      
     def loadReceivers():
         path = "receivers.xlsx"
         workbook = load_workbook(path)
@@ -367,7 +392,7 @@ def Home(username):
     chooseJsonFolderButton.grid(row=2, column=1, pady=15, padx=(0,15))
 
 
-    mailToLabel = Label(NewRoot, text="Mail to " + str(mailingTo) + ". Total from sender: " + str(totalFromSender), font=('Arial, 11'), anchor="w")
+    mailToLabel = Label(NewRoot, text="Start mailing!", font=('Arial, 11'), anchor="w")
     mailToLabel.grid(row=2, column=2, columnspan=2)
 
     remainingLimitLabel = Label(NewRoot, text="Remaining Limit: " + str(limitCount), font=('Arial, 11'), anchor="w")
