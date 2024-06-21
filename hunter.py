@@ -156,6 +156,37 @@ def Home(username):
         return service
 
     def create_message_with_attachment(sender, to, subject, displayName, message_text, file):
+        message = MIMEMultipart('mixed')
+        message['to'] = to
+        message['from'] = f'{displayName} <{sender}>'
+        message['subject'] = subject
+        message['Reply-To'] = sender
+        
+        text_part = MIMEText(message_text, 'plain')
+        message.attach(text_part)
+        
+        # msg_html_part = MIMEText(message_text, 'html')
+        # message.attach(msg_html_part)
+        
+       # Attach the PDF file
+        if file:
+            content_type, encoding = mimetypes.guess_type(file)
+            if content_type is None or encoding is not None:
+                content_type = 'application/octet-stream'
+            
+            main_type, sub_type = content_type.split('/', 1)
+            with open(file, 'rb') as pdf_file:
+                mime_part = MIMEBase(main_type, sub_type)
+                mime_part.set_payload(pdf_file.read())
+                email.encoders.encode_base64(mime_part)
+                mime_part.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(file)}"')
+                message.attach(mime_part)
+        
+        raw = base64.urlsafe_b64encode(message.as_bytes())
+        raw = raw.decode()
+        return {'raw': raw}
+
+    def create_message_with_attachment2(sender, to, subject, displayName, message_text, file):
         message = MIMEMultipart()
         message['to'] = to
         message['from'] = f'{displayName} <{sender}>'
@@ -302,7 +333,7 @@ def Home(username):
                 pdfName = saveToPDF(html)
                 
                 sendEmail(senderEmailInput.get(), currentReceiverEmail, currentSubject, currentSenderName, currentBody, service, pdfName)
-                # time.sleep(0.5)
+                time.sleep(random.randint(0.5, 3))
                 
                 
                 currentEmailCount = currentEmailCount + 1
