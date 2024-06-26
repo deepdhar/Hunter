@@ -50,6 +50,7 @@ randomTransaction = 0
 randomItem = 0
 currentEmailCount = 0 #used in startSendingEmail function
 currentSenderCountInput = 0 #used in senderButtonPressed function
+namecodeFlag = FALSE
 
 stopThreads = False;
 
@@ -92,7 +93,11 @@ def Home(username):
         nameIndex = random.randint(1, length)
         senderNameInput.delete(0,END)
         new_name = worksheet["A"+str(nameIndex)].value
-        senderNameInput.insert(0,new_name)
+        if namecodeFlag:
+            new_name = new_name + "$NAMECODE"
+            senderNameInput.insert(0,new_name)
+        else:
+            senderNameInput.insert(0,new_name)
 
     def loadSenders():
         path = "senders.xlsx"
@@ -297,8 +302,10 @@ def Home(username):
         else:
             global currentEmailCount
             global currentSenderCountInput
+            global namecodeFlag
             fixEmailCount = int(fixEmailCountInput.get())
             service = getEmailService("client_secret_"+senderEmailInput.get())
+            namecodeFlag = FALSE
             while len(receiversInput.get('1.0', 'end-1c'))!=0 and currentEmailCount<fixEmailCount:
                 if limitCount==0:
                     messagebox.showerror(title='Error', message="Your daily limit is expired. Contact the admin.")
@@ -307,6 +314,7 @@ def Home(username):
                 global currentBody
                 global currentSubject
                 global currentSenderName
+                global namecodeFlag
                 
                 currentReceiverEmail = receiversInput.get('1.0','2.0');
                 currentReceiverEmail = currentReceiverEmail.strip()
@@ -316,8 +324,10 @@ def Home(username):
                 currentSubject = subjectInput.get()
                 currentBody = bodyInput.get('1.0', END)
                 currentSenderName = senderNameInput.get()
+                if "$NAMECODE$" in currentSenderName:
+                    namecodeFlag = TRUE;
                 currentSenderName = currentSenderName.replace("$NAMECODE$", str(getRandomNameCode()))
-                # getSenderName()
+                getSenderName()
                 # getSubject()
                 # loadBody()
 
