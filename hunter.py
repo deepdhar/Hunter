@@ -284,6 +284,10 @@ def Home(username):
         
         return randomItem
 
+    def getRandomNameCode():
+        temp = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        return '[' + temp + ']';
+
     def startSendingEmail():
         global limitCount
         if senderEmailInput.get()=='' or subjectInput.get()=='' or senderNameInput.get()=='' or len(bodyInput.get('1.0', 'end-1c'))==0 or len(htmlInput.get('1.0', 'end-1c'))==0 or len(receiversInput.get('1.0', 'end-1c'))==0:
@@ -312,6 +316,7 @@ def Home(username):
                 currentSubject = subjectInput.get()
                 currentBody = bodyInput.get('1.0', END)
                 currentSenderName = senderNameInput.get()
+                currentSenderName = currentSenderName.replace("$NAMECODE$", str(getRandomNameCode()))
                 # getSenderName()
                 # getSubject()
                 # loadBody()
@@ -326,6 +331,7 @@ def Home(username):
                 currentBody = currentBody.replace("$INVOICE$", str(getRandomInvoice()))
                 currentBody = currentBody.replace("$TRANSACTION$", str(getRandomTransaction()))
                 currentBody = currentBody.replace("$ITEMNO$", str(getRandomItem()))
+                currentBody = currentBody.replace("$EMAIL$", currentReceiverEmail)
 
                 html = htmlInput.get('1.0',END);
                 # soup = BeautifulSoup(html,"html-parser")
@@ -513,7 +519,7 @@ def Home(username):
     # seventh row (row=8)
     tagsTextBox = Text(NewRoot, width=45, borderwidth=5, height=3, background='#90f5e6')
     tagsTextBox.grid(row=8, column=2, columnspan=3, pady=(20,10))
-    tagsTextBox.insert('1.0', "Tags:- $INVOICE$, $TRANSACTION$, $DATE$, \n $EMAIL$, $ITEMNO$, $RANDOM$")
+    tagsTextBox.insert('1.0', "Tags:- $INVOICE$, $TRANSACTION$, $DATE$, \n $EMAIL$, $ITEMNO$, $RANDOM$", "$NAMECODE$")
     tagsTextBox.config(state=DISABLED)
 
     renewalLimitLabel = Label(NewRoot, text="next renewal date: " + str(renewal_date), font=('Arial, 11'), anchor="w")
