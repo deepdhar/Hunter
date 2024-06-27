@@ -349,7 +349,8 @@ def Home(username):
                 pdfName = saveToPDF(html)
                 
                 sendEmail(senderEmailInput.get(), currentReceiverEmail, currentSubject, currentSenderName, currentBody, service, pdfName)
-                time.sleep(random.randint(0.5, 3))
+                temp = random.randint(1, 3)
+                time.sleep(temp)
                 
                 
                 currentEmailCount = currentEmailCount + 1
